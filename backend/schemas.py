@@ -1,8 +1,9 @@
-from typing import Optional
-import uuid
+from __future__ import annotations
+
 from datetime import datetime
 from enum import IntEnum
-from pydantic import BaseModel, field_validator
+
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class Chat(BaseModel):
@@ -10,11 +11,12 @@ class Chat(BaseModel):
     created_at: datetime
     messages: list
 
-    class Config:
-        orm_mode=True
+    model_config = ConfigDict(from_attributes=True)
+
 
 class ChatCreate(BaseModel):
-    messages: list = []
+    messages: list = Field(default_factory=list)
+
 
 class ChatUpdate(BaseModel):
     messages: list
@@ -24,38 +26,41 @@ class FormSubmission(BaseModel):
     id: str
     created_at: datetime
     # Some legacy rows may have nulls; keep response tolerant
-    name: Optional[str] = None
-    phone_number: Optional[str] = None
-    email: Optional[str] = None
-    status: Optional[int] = None
+    name: str | None = None
+    phone_number: str | None = None
+    email: str | None = None
+    status: int | None = None
 
-    class Config:
-        orm_mode=True
+    model_config = ConfigDict(from_attributes=True)
+
 
 class FormSubmissionCreate(BaseModel):
     name: str
     phone_number: str
     email: str
     chat_id: str
-    status: Optional[int] = None
+    status: int | None = None
+
 
 class FormSubmissionUpdate(BaseModel):
-    name: Optional[str] = None
-    phone_number: Optional[str] = None
-    email: Optional[str] = None
-    status: Optional[int] = None
-    
-    @field_validator('status')
+    name: str | None = None
+    phone_number: str | None = None
+    email: str | None = None
+    status: int | None = None
+
+    @field_validator("status")
     @classmethod
     def validate_status(cls, v):
         """Validate status is None, 1, 2, or 3"""
         if v is not None and v not in [1, 2, 3]:
-            raise ValueError('Status must be None, 1 (TO DO), 2 (IN PROGRESS), or 3 (COMPLETED)')
+            raise ValueError(
+                "Status must be None, 1 (TO DO), 2 (IN PROGRESS), or 3 (COMPLETED)"
+            )
         return v
 
 
-
 # Task 2
+
 
 # adding an enum based FormStatus class to validate the status field
 class FormStatus(IntEnum):
@@ -66,28 +71,28 @@ class FormStatus(IntEnum):
 
 class AuditChange(BaseModel):
     id: str
-    created_at: Optional[datetime] = None
+    created_at: datetime | None = None
     field: str
-    old_value: Optional[object] = None
-    new_value: Optional[object] = None
+    old_value: object | None = None
+    new_value: object | None = None
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
+
 
 # Task 3 Audit Log Revisions
 
+
 class AuditRevisionWithChanges(BaseModel):
     id: str
-    created_at: Optional[datetime] = None
+    created_at: datetime | None = None
     entity_type: str
     entity_id: str
     event_type: str
-    source: Optional[str] = None
-    actor_type: Optional[str] = None
-    actor_id: Optional[str] = None
-    reason: Optional[str] = None
-    request_id: Optional[str] = None
-    changes: list[AuditChange] = []
+    source: str | None = None
+    actor_type: str | None = None
+    actor_id: str | None = None
+    reason: str | None = None
+    request_id: str | None = None
+    changes: list[AuditChange] = Field(default_factory=list)
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)

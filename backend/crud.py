@@ -1,14 +1,16 @@
+from __future__ import annotations
+
 import uuid
-from datetime import datetime, timezone
-from typing import Any, Dict, Generic, List, Optional, Type, TypeVar, Union
+from datetime import UTC, datetime
+from typing import Any, Generic, TypeVar
 
 from fastapi.encoders import jsonable_encoder
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from models import Base, Chat, FormSubmission
 import schemas
+from models import Base, Chat, FormSubmission
 
 ModelType = TypeVar("ModelType", bound=Base)
 CreateSchemaType = TypeVar("CreateSchemaType", bound=BaseModel)
@@ -16,35 +18,40 @@ UpdateSchemaType = TypeVar("UpdateSchemaType", bound=BaseModel)
 
 
 class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
-    def __init__(self, model: Type[ModelType]):
-        """
-                CRUD object with default methods to Create, Read, Update, Delete (CRUD).
-
-                **Parameters**
-
-            UserAccessPolicy,
-        UserAccessPolicy,
-        """
+    def __init__(self, model: type[ModelType]):
+        """CRUD helpers for SQLAlchemy models."""
         self.model = model
 
     async def get(
-        self, db: AsyncSession, id: Union[uuid.UUID, str, int], options: list = []
-    ) -> Optional[ModelType]:
-        statement = select(self.model).filter(self.model.id == id).options(*options)
+        self,
+        db: AsyncSession,
+        id: uuid.UUID | str | int,
+        options: list | None = None,
+    ) -> ModelType | None:
+        statement = (
+            select(self.model).filter(self.model.id == id).options(*(options or []))
+        )
         result = await db.scalars(statement)
         return result.first()
 
     async def get_multi(
-        self, db: AsyncSession, *, filters: list = [], skip: int = 0, limit: int = 100
-    ) -> List[ModelType]:
-        statement = select(self.model).filter(*filters).offset(skip).limit(limit)
+        self,
+        db: AsyncSession,
+        *,
+        filters: list | None = None,
+        skip: int = 0,
+        limit: int = 100,
+    ) -> list[ModelType]:
+        statement = (
+            select(self.model).filter(*(filters or [])).offset(skip).limit(limit)
+        )
         result = await db.scalars(statement)
         return result.all()
 
     async def create(self, db: AsyncSession, *, obj_in: CreateSchemaType) -> ModelType:
         obj_in_data = jsonable_encoder(obj_in)
         db_obj = self.model(
-            **obj_in_data, created_at=datetime.now(timezone.utc).replace(tzinfo=None)
+            **obj_in_data, created_at=datetime.now(UTC).replace(tzinfo=None)
         )  # type: ignore
 
         db.add(db_obj)
@@ -58,7 +65,7 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         db: AsyncSession,
         *,
         db_obj: ModelType,
-        obj_in: Union[UpdateSchemaType, Dict[str, Any]],
+        obj_in: UpdateSchemaType | dict[str, Any],
     ) -> ModelType:
         obj_data = jsonable_encoder(
             db_obj, exclude={"embedding", "vector", "routing_options"}
@@ -80,17 +87,19 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         await db.delete(obj)
         await db.commit()
         return obj
-    
-class CRUDChat(
-    CRUDBase[Chat, schemas.ChatCreate, schemas.ChatUpdate]
-):
+
+
+class CRUDChat(CRUDBase[Chat, schemas.ChatCreate, schemas.ChatUpdate]):
     pass
 
+
 chat = CRUDChat(Chat)
+
 
 class CRUDFormSubmission(
     CRUDBase[FormSubmission, schemas.FormSubmissionCreate, schemas.FormSubmissionUpdate]
 ):
     pass
+
 
 form = CRUDFormSubmission(FormSubmission)

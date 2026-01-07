@@ -1,8 +1,7 @@
-import uuid
-
-from sqlalchemy import JSON, UUID, Column, DateTime, ForeignKey, String, Integer
-from sqlalchemy.orm import relationship
 import secrets
+
+from sqlalchemy import JSON, Column, DateTime, ForeignKey, Integer, String
+from sqlalchemy.orm import relationship
 
 from database import Base
 
@@ -10,17 +9,22 @@ from database import Base
 class Chat(Base):
     __tablename__ = "chat"
 
-    id = Column(String(length=32), primary_key=True, index=True, default=secrets.token_urlsafe)
+    id = Column(
+        String(length=32), primary_key=True, index=True, default=secrets.token_urlsafe
+    )
     created_at = Column(DateTime, index=True)
     messages = Column(JSON)
     form_submissions = relationship(
         "FormSubmission", cascade="all, delete", back_populates="chat"
     )
 
+
 class FormSubmission(Base):
     __tablename__ = "form_submission"
 
-    id = Column(String(length=32), primary_key=True, index=True, default=secrets.token_urlsafe)
+    id = Column(
+        String(length=32), primary_key=True, index=True, default=secrets.token_urlsafe
+    )
     created_at = Column(DateTime, index=True)
     chat_id = Column(
         String(length=32), ForeignKey("chat.id"), index=True, nullable=False
@@ -35,7 +39,9 @@ class FormSubmission(Base):
 class AuditRevision(Base):
     __tablename__ = "audit_revision"
 
-    id = Column(String(length=32), primary_key=True, index=True, default=secrets.token_urlsafe)
+    id = Column(
+        String(length=32), primary_key=True, index=True, default=secrets.token_urlsafe
+    )
     created_at = Column(DateTime, index=True)
 
     entity_type = Column(String, index=True, nullable=False)
@@ -48,19 +54,24 @@ class AuditRevision(Base):
     reason = Column(String, nullable=True)
     request_id = Column(String, nullable=True)
 
-    changes = relationship("AuditChange", cascade="all, delete-orphan", back_populates="revision")
+    changes = relationship(
+        "AuditChange", cascade="all, delete-orphan", back_populates="revision"
+    )
 
 
 class AuditChange(Base):
     __tablename__ = "audit_change"
 
-    id = Column(String(length=32), primary_key=True, index=True, default=secrets.token_urlsafe)
+    id = Column(
+        String(length=32), primary_key=True, index=True, default=secrets.token_urlsafe
+    )
     created_at = Column(DateTime, index=True)
 
-    revision_id = Column(String(length=32), ForeignKey("audit_revision.id"), index=True, nullable=False)
+    revision_id = Column(
+        String(length=32), ForeignKey("audit_revision.id"), index=True, nullable=False
+    )
     revision = relationship("AuditRevision", back_populates="changes")
 
     field = Column(String, index=True, nullable=False)
     old_value = Column(JSON, nullable=True)
     new_value = Column(JSON, nullable=True)
-    

@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
-from typing import Any, Iterable, Optional
+from collections.abc import Iterable
+from datetime import UTC, datetime
+from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -17,17 +18,17 @@ async def log_revision(
     entity_id: str,
     event_type: str,
     changes: Iterable[dict[str, Any]],
-    source: Optional[str] = None,
-    actor_type: Optional[str] = None,
-    actor_id: Optional[str] = None,
-    reason: Optional[str] = None,
-    request_id: Optional[str] = None,
+    source: str | None = None,
+    actor_type: str | None = None,
+    actor_id: str | None = None,
+    reason: str | None = None,
+    request_id: str | None = None,
 ) -> None:
     """
     Best-effort audit logging.
     This intentionally commits in its own transaction to keep main logic simple.
     """
-    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    now = datetime.now(UTC).replace(tzinfo=None)
 
     revision = AuditRevision(
         created_at=now,
