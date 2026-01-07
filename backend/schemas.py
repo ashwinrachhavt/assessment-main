@@ -62,3 +62,32 @@ class FormStatus(IntEnum):
     TODO = 1
     IN_PROGRESS = 2
     COMPLETED = 3
+
+
+class AuditChange(BaseModel):
+    id: str
+    created_at: datetime
+    field: str
+    old_value: Optional[object] = None
+    new_value: Optional[object] = None
+
+    class Config:
+        orm_mode = True
+
+# Task 3 Audit Log Revisions
+
+class AuditRevisionWithChanges(BaseModel):
+    id: str
+    created_at: datetime
+    entity_type: str
+    entity_id: str
+    event_type: str
+    source: Optional[str] = None
+    actor_type: Optional[str] = None
+    actor_id: Optional[str] = None
+    reason: Optional[str] = None
+    request_id: Optional[str] = None
+    changes: list[AuditChange] = []
+
+    class Config:
+        orm_mode = True

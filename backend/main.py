@@ -6,12 +6,16 @@ from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from openai import OpenAI
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
+from sqlalchemy import select
 import crud
 from database import SessionLocal
 import schemas
 from models import FormSubmission
+from models import AuditRevision
 import os
 from dotenv import load_dotenv
+import audit
 
 load_dotenv()
 
@@ -186,6 +190,20 @@ async def update_chat(
                         status=None
                     )
                     created_form = await crud.form.create(db=db, obj_in=form_submission_data)
+                    await audit.log_revision(
+                        db,
+                        entity_type="form_submission",
+                        entity_id=created_form.id,
+                        event_type="create",
+                        source="chat_tool",
+                        changes=[
+                            {"field": "name", "old_value": None, "new_value": created_form.name},
+                            {"field": "email", "old_value": None, "new_value": created_form.email},
+                            {"field": "phone_number", "old_value": None, "new_value": created_form.phone_number},
+                            {"field": "status", "old_value": None, "new_value": created_form.status},
+                            {"field": "chat_id", "old_value": None, "new_value": created_form.chat_id},
+                        ],
+                    )
                     tool_response = f"Success! Form submitted with ID: {created_form.id}"
                     
                 elif tool_name == "update_interest_form":
@@ -196,6 +214,12 @@ async def update_chat(
                     if not form_obj:
                         tool_response = f"Error: Form with ID {form_id} not found"
                     else:
+                        old = {
+                            "name": form_obj.name,
+                            "email": form_obj.email,
+                            "phone_number": form_obj.phone_number,
+                            "status": form_obj.status,
+                        }
                         # Build update data with only provided, non-null fields
                         update_payload: dict[str, Any] = {}
                         for key in ("name", "email", "phone_number", "status"):
@@ -203,7 +227,27 @@ async def update_chat(
                                 update_payload[key] = form_data[key]
 
                         update_data = schemas.FormSubmissionUpdate(**update_payload)
-                        await crud.form.update(db=db, db_obj=form_obj, obj_in=update_data)
+                        updated = await crud.form.update(db=db, db_obj=form_obj, obj_in=update_data)
+
+                        changes = []
+                        for field in update_payload.keys():
+                            if old.get(field) != getattr(updated, field):
+                                changes.append(
+                                    {
+                                        "field": field,
+                                        "old_value": old.get(field),
+                                        "new_value": getattr(updated, field),
+                                    }
+                                )
+                        if changes:
+                            await audit.log_revision(
+                                db,
+                                entity_type="form_submission",
+                                entity_id=form_id,
+                                event_type="update",
+                                source="chat_tool",
+                                changes=changes,
+                            )
                         tool_response = f"Success! Form {form_id} updated"
                         
                 elif tool_name == "delete_interest_form":
@@ -214,7 +258,24 @@ async def update_chat(
                     if not form_obj:
                         tool_response = f"Error: Form with ID {form_id} not found"
                     else:
+                        old = {
+                            "name": form_obj.name,
+                            "email": form_obj.email,
+                            "phone_number": form_obj.phone_number,
+                            "status": form_obj.status,
+                            "chat_id": form_obj.chat_id,
+                        }
                         await crud.form.remove(db=db, id=form_id)
+                        await audit.log_revision(
+                            db,
+                            entity_type="form_submission",
+                            entity_id=form_id,
+                            event_type="delete",
+                            source="chat_tool",
+                            changes=[
+                                {"field": k, "old_value": v, "new_value": None} for k, v in old.items()
+                            ],
+                        )
                         tool_response = f"Success! Form {form_id} deleted"
                         
             except Exception as e:
@@ -296,8 +357,29 @@ async def update_form(
     for key in ("name", "email", "phone_number"):
         if key in update_payload and update_payload[key] is None:
             raise HTTPException(status_code=400, detail=f"{key} cannot be null")
+
+    old = {
+        "name": form.name,
+        "email": form.email,
+        "phone_number": form.phone_number,
+        "status": form.status,
+    }
     
     updated_form = await crud.form.update(db=db, db_obj=form, obj_in=data)
+
+    changes = []
+    for field, new_value in update_payload.items():
+        if old.get(field) != getattr(updated_form, field):
+            changes.append({"field": field, "old_value": old.get(field), "new_value": getattr(updated_form, field)})
+    if changes:
+        await audit.log_revision(
+            db,
+            entity_type="form_submission",
+            entity_id=form_id,
+            event_type="update",
+            source="api",
+            changes=changes,
+        )
     return updated_form
 
 
@@ -308,6 +390,34 @@ async def delete_form(form_id: str, db: AsyncSession = Depends(get_db)):
     
     if not form:
         raise HTTPException(status_code=404, detail="Form not found")
+
+    old = {
+        "name": form.name,
+        "email": form.email,
+        "phone_number": form.phone_number,
+        "status": form.status,
+        "chat_id": form.chat_id,
+    }
     
     await crud.form.remove(db=db, id=form_id)
+    await audit.log_revision(
+        db,
+        entity_type="form_submission",
+        entity_id=form_id,
+        event_type="delete",
+        source="api",
+        changes=[{"field": k, "old_value": v, "new_value": None} for k, v in old.items()],
+    )
     return {"message": "Form deleted successfully", "form_id": form_id}
+
+
+@app.get("/forms/{form_id}/history", response_model=list[schemas.AuditRevisionWithChanges])
+async def get_form_history(form_id: str, db: AsyncSession = Depends(get_db)):
+    statement = (
+        select(AuditRevision)
+        .options(selectinload(AuditRevision.changes))
+        .where(AuditRevision.entity_type == "form_submission", AuditRevision.entity_id == form_id)
+        .order_by(AuditRevision.created_at.desc())
+    )
+    result = await db.scalars(statement)
+    return result.all()
