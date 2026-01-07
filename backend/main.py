@@ -15,8 +15,8 @@ from sqlalchemy.orm import selectinload
 
 import audit
 import crud
+import database
 import schemas
-from database import SessionLocal
 from models import AuditRevision, FormSubmission
 
 load_dotenv()
@@ -39,10 +39,10 @@ SYSTEM_TEMPLATE = """"""
 
 # Get a DB Session
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
-    if SessionLocal is None:
+    if database.SessionLocal is None:
         raise RuntimeError("Database SessionLocal is not initialized")
 
-    async with SessionLocal() as session:  # type: ignore[misc]
+    async with database.SessionLocal() as session:  # type: ignore[misc]
         yield session
 
 

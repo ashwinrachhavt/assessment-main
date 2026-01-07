@@ -3,8 +3,8 @@ from __future__ import annotations
 import pytest
 
 import crud
+import database
 import schemas
-from database import SessionLocal
 
 
 @pytest.mark.asyncio
@@ -21,8 +21,8 @@ async def test_form_lifecycle(client):
     assert resp.status_code == 200
     chat_id = resp.json()["id"]
 
-    assert SessionLocal is not None
-    async with SessionLocal() as db:  # type: ignore[misc]
+    assert database.SessionLocal is not None
+    async with database.SessionLocal() as db:  # type: ignore[misc]
         form = await crud.form.create(
             db=db,
             obj_in=schemas.FormSubmissionCreate(
