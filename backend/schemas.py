@@ -66,7 +66,7 @@ class FormStatus(IntEnum):
 
 class AuditChange(BaseModel):
     id: str
-    created_at: datetime
+    created_at: Optional[datetime] = None
     field: str
     old_value: Optional[object] = None
     new_value: Optional[object] = None
@@ -78,7 +78,7 @@ class AuditChange(BaseModel):
 
 class AuditRevisionWithChanges(BaseModel):
     id: str
-    created_at: datetime
+    created_at: Optional[datetime] = None
     entity_type: str
     entity_id: str
     event_type: str
