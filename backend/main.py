@@ -175,6 +175,9 @@ async def update_chat(
             try:
                 if tool_name == "submit_interest_form":
                     # TASK 1: Create form submission
+                    if not form_data.get("name") or not form_data.get("email") or not form_data.get("phone_number"):
+                        raise ValueError("name, email, and phone_number are required")
+
                     form_submission_data = schemas.FormSubmissionCreate(
                         name=form_data.get("name"),
                         email=form_data.get("email"),
@@ -193,13 +196,13 @@ async def update_chat(
                     if not form_obj:
                         tool_response = f"Error: Form with ID {form_id} not found"
                     else:
-                        # Build update data with only provided fields
-                        update_data = schemas.FormSubmissionUpdate(
-                            name=form_data.get("name"),
-                            email=form_data.get("email"),
-                            phone_number=form_data.get("phone_number"),
-                            status=form_data.get("status")
-                        )
+                        # Build update data with only provided, non-null fields
+                        update_payload: dict[str, Any] = {}
+                        for key in ("name", "email", "phone_number", "status"):
+                            if key in form_data and form_data[key] is not None:
+                                update_payload[key] = form_data[key]
+
+                        update_data = schemas.FormSubmissionUpdate(**update_payload)
                         await crud.form.update(db=db, db_obj=form_obj, obj_in=update_data)
                         tool_response = f"Success! Form {form_id} updated"
                         
@@ -287,6 +290,12 @@ async def update_form(
     
     if not form:
         raise HTTPException(status_code=404, detail="Form not found")
+
+    # Disallow explicitly setting these fields to null via REST API
+    update_payload = data.model_dump(exclude_unset=True)
+    for key in ("name", "email", "phone_number"):
+        if key in update_payload and update_payload[key] is None:
+            raise HTTPException(status_code=400, detail=f"{key} cannot be null")
     
     updated_form = await crud.form.update(db=db, db_obj=form, obj_in=data)
     return updated_form

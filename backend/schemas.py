@@ -23,9 +23,10 @@ class ChatUpdate(BaseModel):
 class FormSubmission(BaseModel):
     id: str
     created_at: datetime
-    name: str
-    phone_number: str
-    email: str
+    # Some legacy rows may have nulls; keep response tolerant
+    name: Optional[str] = None
+    phone_number: Optional[str] = None
+    email: Optional[str] = None
     status: Optional[int] = None
 
     class Config:
@@ -61,4 +62,3 @@ class FormStatus(IntEnum):
     TODO = 1
     IN_PROGRESS = 2
     COMPLETED = 3
-
