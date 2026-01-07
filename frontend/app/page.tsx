@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import { fetcher } from "@/utils/fetcher";
 import Link from "next/link";
@@ -7,63 +7,68 @@ import { useState } from "react";
 import useSWR from "swr";
 
 export default function Home() {
-  const router = useRouter()
-  const { data } = useSWR({ url: `chat` }, fetcher) // make GET request
+  const router = useRouter();
+  const { data } = useSWR({ url: `chat` }, fetcher); // make GET request
 
-  async function createChat() { // make POST request
-    const resp = await fetch('http://localhost:8000/chat', {
-      method: 'POST',
+  async function createChat() {
+    // make POST request
+    const resp = await fetch("http://localhost:8000/chat", {
+      method: "POST",
       headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json'
+        Accept: "application/json",
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({}),
-    })
+    });
 
     if (resp.ok) {
-      const json = await resp.json()
-      router.push(`/${json.id}`)
+      const json = await resp.json();
+      router.push(`/${json.id}`);
     }
   }
 
-  return <div className="m-4 p-4 rounded-lg"><div className="flex justify-between items-center mb-4">
-    <h1 className="text-2xl font-semibold">Chats</h1>
-    <button className="justify-center rounded-md px-4 py-2 text-sm font-medium text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-opacity-75 bg-blue-950 bg-opacity-50 hover:bg-opacity-70" onClick={() => createChat()}>Create Chat</button>
-  </div>
-    <div className="border rounded-lg border-neutral-300 bg-white p-4 shadow">
-      <div className="w-full text-sm text-left table">
-        <div className="text-xs uppercase table-header-group">
-          <div className="table-row">
-            <div className="font-semibold table-cell px-3 py-3">
-              ID
-            </div>
-            <div className="font-semibold table-cell px-3 py-3">
-              Created At
+  return (
+    <div className="m-4 p-4 rounded-lg">
+      <div className="flex justify-between items-center mb-4">
+        <h1 className="text-2xl font-semibold">Chats</h1>
+        <button
+          className="justify-center rounded-md px-4 py-2 text-sm font-medium text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-opacity-75 bg-blue-950 bg-opacity-50 hover:bg-opacity-70"
+          onClick={() => createChat()}
+        >
+          Create Chat
+        </button>
+      </div>
+      <div className="border rounded-lg border-neutral-300 bg-white p-4 shadow">
+        <div className="w-full text-sm text-left table">
+          <div className="text-xs uppercase table-header-group">
+            <div className="table-row">
+              <div className="font-semibold table-cell px-3 py-3">ID</div>
+              <div className="font-semibold table-cell px-3 py-3">Created At</div>
             </div>
           </div>
-        </div>
-        <div className="table-row-group">
-          {data?.map((s: any) => {
-            const date = new Date(s.created_at + 'Z')
-            return (
-              <Link key={`${s.user_id}:${s.resource_id}`} href={`/${s.id}`} className="border-b hover:bg-neutral-200 hover:cursor-pointer table-row align-middle">
-                <div className="px-3 py-3 table-cell font-medium text-gray-900 whitespace-nowrap ">
-                  {s.id}
-                </div>
-                <div className="table-cell px-3 py-3">
-                  <div className="flex justify-between items-center">
-                    {date.toLocaleString()}
+          <div className="table-row-group">
+            {data?.map((s: any) => {
+              const date = new Date(s.created_at + "Z");
+              return (
+                <Link
+                  key={`${s.user_id}:${s.resource_id}`}
+                  href={`/${s.id}`}
+                  className="border-b hover:bg-neutral-200 hover:cursor-pointer table-row align-middle"
+                >
+                  <div className="px-3 py-3 table-cell font-medium text-gray-900 whitespace-nowrap ">
+                    {s.id}
                   </div>
-                </div>
-              </Link>
-            )
-          })}
+                  <div className="table-cell px-3 py-3">
+                    <div className="flex justify-between items-center">{date.toLocaleString()}</div>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
         </div>
       </div>
     </div>
-  </div>
-
-
+  );
 
   // }
 

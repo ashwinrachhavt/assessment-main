@@ -34,17 +34,23 @@ If you are completely unfamiliar with React, you can write the needed components
 
 ## Getting Setup
 
-Before doing anything else, paste the API key you were provided into backend/main.py where it says "YOUR_KEY_HERE"
+Set your OpenAI API key as an environment variable (preferred):
+
+```bash
+export OPENAI_API_KEY="..."
+```
 
 ### Backend/Database
 
 ```bash
 cd backend
 
-python3 -m venv .venv
+# Recommended: use uv for dependency management
+python3 -m pip install uv
+uv venv
 source .venv/bin/activate
 
-pip install -r requirements.txt
+uv pip install -r requirements.txt -r requirements-dev.txt
 
 alembic upgrade head
 uvicorn main:app --reload
@@ -58,6 +64,35 @@ cd frontend
 npm i
 
 npm run dev
+```
+
+## Code Quality
+
+Backend:
+
+```bash
+cd backend
+ruff format .
+ruff check .
+pytest
+```
+
+Frontend:
+
+```bash
+cd frontend
+npm run format
+npm run lint
+```
+
+## Make targets
+
+```bash
+make run-backend
+make run-frontend
+make format
+make lint
+make test
 ```
 
 ## Task 1 - Collect Structured Interest Form
