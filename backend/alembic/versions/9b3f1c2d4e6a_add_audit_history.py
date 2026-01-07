@@ -6,17 +6,17 @@ Create Date: 2026-01-07
 
 """
 
-from typing import Sequence, Union
+from collections.abc import Sequence
 
-from alembic import op
 import sqlalchemy as sa
 
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = "9b3f1c2d4e6a"
-down_revision: Union[str, None] = "6df106850af3"
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | None = "6df106850af3"
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
@@ -34,11 +34,33 @@ def upgrade() -> None:
         sa.Column("request_id", sa.String(), nullable=True),
         sa.PrimaryKeyConstraint("id"),
     )
-    op.create_index(op.f("ix_audit_revision_created_at"), "audit_revision", ["created_at"], unique=False)
-    op.create_index(op.f("ix_audit_revision_entity_id"), "audit_revision", ["entity_id"], unique=False)
-    op.create_index(op.f("ix_audit_revision_entity_type"), "audit_revision", ["entity_type"], unique=False)
-    op.create_index(op.f("ix_audit_revision_event_type"), "audit_revision", ["event_type"], unique=False)
-    op.create_index(op.f("ix_audit_revision_id"), "audit_revision", ["id"], unique=False)
+    op.create_index(
+        op.f("ix_audit_revision_created_at"),
+        "audit_revision",
+        ["created_at"],
+        unique=False,
+    )
+    op.create_index(
+        op.f("ix_audit_revision_entity_id"),
+        "audit_revision",
+        ["entity_id"],
+        unique=False,
+    )
+    op.create_index(
+        op.f("ix_audit_revision_entity_type"),
+        "audit_revision",
+        ["entity_type"],
+        unique=False,
+    )
+    op.create_index(
+        op.f("ix_audit_revision_event_type"),
+        "audit_revision",
+        ["event_type"],
+        unique=False,
+    )
+    op.create_index(
+        op.f("ix_audit_revision_id"), "audit_revision", ["id"], unique=False
+    )
 
     op.create_table(
         "audit_change",
@@ -51,10 +73,19 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(["revision_id"], ["audit_revision.id"]),
         sa.PrimaryKeyConstraint("id"),
     )
-    op.create_index(op.f("ix_audit_change_created_at"), "audit_change", ["created_at"], unique=False)
-    op.create_index(op.f("ix_audit_change_field"), "audit_change", ["field"], unique=False)
+    op.create_index(
+        op.f("ix_audit_change_created_at"), "audit_change", ["created_at"], unique=False
+    )
+    op.create_index(
+        op.f("ix_audit_change_field"), "audit_change", ["field"], unique=False
+    )
     op.create_index(op.f("ix_audit_change_id"), "audit_change", ["id"], unique=False)
-    op.create_index(op.f("ix_audit_change_revision_id"), "audit_change", ["revision_id"], unique=False)
+    op.create_index(
+        op.f("ix_audit_change_revision_id"),
+        "audit_change",
+        ["revision_id"],
+        unique=False,
+    )
 
 
 def downgrade() -> None:
