@@ -30,4 +30,37 @@ class FormSubmission(Base):
     phone_number = Column(String, index=True)
     email = Column(String, index=True)
     status = Column(Integer, index=True)
+
+
+class AuditRevision(Base):
+    __tablename__ = "audit_revision"
+
+    id = Column(String(length=32), primary_key=True, index=True, default=secrets.token_urlsafe)
+    created_at = Column(DateTime, index=True)
+
+    entity_type = Column(String, index=True, nullable=False)
+    entity_id = Column(String, index=True, nullable=False)
+    event_type = Column(String, index=True, nullable=False)  # create|update|delete
+
+    actor_type = Column(String, nullable=True)
+    actor_id = Column(String, nullable=True)
+    source = Column(String, nullable=True)  # api|ui|chat_tool
+    reason = Column(String, nullable=True)
+    request_id = Column(String, nullable=True)
+
+    changes = relationship("AuditChange", cascade="all, delete-orphan", back_populates="revision")
+
+
+class AuditChange(Base):
+    __tablename__ = "audit_change"
+
+    id = Column(String(length=32), primary_key=True, index=True, default=secrets.token_urlsafe)
+    created_at = Column(DateTime, index=True)
+
+    revision_id = Column(String(length=32), ForeignKey("audit_revision.id"), index=True, nullable=False)
+    revision = relationship("AuditRevision", back_populates="changes")
+
+    field = Column(String, index=True, nullable=False)
+    old_value = Column(JSON, nullable=True)
+    new_value = Column(JSON, nullable=True)
     
