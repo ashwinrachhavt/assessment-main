@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from typing import Any, Iterable, Optional
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -26,7 +27,10 @@ async def log_revision(
     Best-effort audit logging.
     This intentionally commits in its own transaction to keep main logic simple.
     """
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
+
     revision = AuditRevision(
+        created_at=now,
         entity_type=entity_type,
         entity_id=entity_id,
         event_type=event_type,
@@ -42,6 +46,7 @@ async def log_revision(
     for ch in changes:
         db.add(
             AuditChange(
+                created_at=now,
                 revision_id=revision.id,
                 field=ch["field"],
                 old_value=ch.get("old_value"),
@@ -50,4 +55,3 @@ async def log_revision(
         )
 
     await db.commit()
-
