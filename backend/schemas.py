@@ -1,8 +1,8 @@
 from typing import Optional
 import uuid
 from datetime import datetime
-
-from pydantic import BaseModel
+from enum import IntEnum
+from pydantic import BaseModel, field_validator
 
 
 class Chat(BaseModel):
@@ -23,9 +23,10 @@ class ChatUpdate(BaseModel):
 class FormSubmission(BaseModel):
     id: str
     created_at: datetime
-    name: str
-    phone_number: str
-    email: str
+    # Some legacy rows may have nulls; keep response tolerant
+    name: Optional[str] = None
+    phone_number: Optional[str] = None
+    email: Optional[str] = None
     status: Optional[int] = None
 
     class Config:
@@ -43,3 +44,21 @@ class FormSubmissionUpdate(BaseModel):
     phone_number: Optional[str] = None
     email: Optional[str] = None
     status: Optional[int] = None
+    
+    @field_validator('status')
+    @classmethod
+    def validate_status(cls, v):
+        """Validate status is None, 1, 2, or 3"""
+        if v is not None and v not in [1, 2, 3]:
+            raise ValueError('Status must be None, 1 (TO DO), 2 (IN PROGRESS), or 3 (COMPLETED)')
+        return v
+
+
+
+# Task 2
+
+# adding an enum based FormStatus class to validate the status field
+class FormStatus(IntEnum):
+    TODO = 1
+    IN_PROGRESS = 2
+    COMPLETED = 3
